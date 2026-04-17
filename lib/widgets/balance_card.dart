@@ -5,7 +5,9 @@ import '../theme/app_theme.dart';
 
 class BalanceCard extends StatelessWidget {
   final CardModel card;
-  const BalanceCard({super.key, required this.card});
+  final VoidCallback? onManage;
+
+  const BalanceCard({super.key, required this.card, this.onManage});
 
   @override
   Widget build(BuildContext context) {
@@ -24,29 +26,31 @@ class BalanceCard extends StatelessWidget {
             children: [
               const Text('UniPay', style: TextStyle(
                   color: Colors.white70, fontSize: 13, letterSpacing: 2)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: card.isBlocked ? AppTheme.danger : AppTheme.success,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  card.isBlocked ? 'BLOCKED' : 'ACTIVE',
-                  style: const TextStyle(color: Colors.white,
-                      fontSize: 11, fontWeight: FontWeight.bold),
-                ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: card.isBlocked ? AppTheme.danger : AppTheme.success,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      card.isBlocked ? 'BLOCKED' : 'ACTIVE',
+                      style: const TextStyle(color: Colors.white,
+                          fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  if (onManage != null) ...[
+                    const SizedBox(width: 8),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      onPressed: onManage,
+                      icon: const Icon(Icons.settings_outlined, color: Colors.white70, size: 20),
+                    ),
+                  ],
+                ],
               ),
             ],
-          ),
-          const SizedBox(height: 24),
-          const Text('Available Balance',
-              style: TextStyle(color: Colors.white60, fontSize: 13)),
-          const SizedBox(height: 4),
-          Text(
-            NumberFormat.currency(locale: 'en_IN', symbol: '₹')
-                .format(card.balance),
-            style: const TextStyle(
-                color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
           Row(

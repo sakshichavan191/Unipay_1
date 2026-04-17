@@ -1,16 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passController = TextEditingController();
-  LoginScreen({super.key});
+
+  Future<void> _handleLogin() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    try {
+      await auth.login(_emailController.text, _passController.text);
+      if (mounted) {
+        final user = auth.user;
+        if (user?.role == 'ADMIN') {
+          Navigator.pushReplacementNamed(context, '/admin-dashboard');
+        } else if (user?.role == 'MERCHANT') {
+          Navigator.pushReplacementNamed(context, '/merchant-dashboard');
+        } else {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = context.watch<AuthProvider>().isLoading;
+
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -30,15 +63,23 @@ class LoginScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
-                  child: const Text('Sign In'),
+                  onPressed: isLoading ? null : _handleLogin,
+                  child: isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text('Sign In'),
                 ),
               ),
               const SizedBox(height: 16),
-              Center(child: TextButton(
-                onPressed: () {},
-                child: const Text("Don't have an account? Register"),
-              )),
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/register'),
+                  child: const Text("Don't have an account? Register"),
+                ),
+              ),
             ],
           ),
         ),
@@ -46,8 +87,8 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildField(String label, IconData icon,
-      TextEditingController ctrl, {bool obscure = false}) {
+  Widget _buildField(String label, IconData icon, TextEditingController ctrl,
+      {bool obscure = false}) {
     return TextField(
       controller: ctrl,
       obscureText: obscure,
@@ -60,4 +101,4 @@ class LoginScreen extends StatelessWidget {
       ),
     );
   }
-}
+}

@@ -1,21 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../theme/app_theme.dart';
-import '../../providers/theme_provider.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../theme/app_theme.dart';
+import '../../../providers/theme_provider.dart';
+import '../../../widgets/edit_profile_sheet.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context);
+    final user = auth.user;
+    
     final textColor = Theme.of(context).textTheme.bodyLarge!.color;
     final subTextColor = Theme.of(context).textTheme.bodyMedium!.color;
     final cardColor = Theme.of(context).cardColor;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(
+        title: const Text('Profile'),
+        actions: [
+          TextButton(
+            onPressed: () => _showEditSheet(context, user?.name ?? '', user?.phone ?? ''),
+            child: const Text('Edit', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
 
-      // ✅ FIX: Added scroll
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -25,9 +38,9 @@ class ProfileScreen extends StatelessWidget {
               CircleAvatar(
                 radius: 44,
                 backgroundColor: AppTheme.primary,
-                child: const Text(
-                  'RS',
-                  style: TextStyle(
+                child: Text(
+                  user?.name.substring(0, 1).toUpperCase() ?? 'U',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -38,7 +51,7 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 14),
 
               Text(
-                'Ravi Sharma',
+                user?.name ?? 'Loading...',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -47,7 +60,7 @@ class ProfileScreen extends StatelessWidget {
               ),
 
               Text(
-                'STU2024001',
+                user?.role ?? 'User',
                 style: TextStyle(color: subTextColor),
               ),
 
@@ -57,34 +70,36 @@ class ProfileScreen extends StatelessWidget {
                 context,
                 Icons.email_outlined,
                 'Email',
-                'ravi@university.edu',
+                user?.email ?? '-',
                 cardColor,
                 textColor,
                 subTextColor,
               ),
+              if (user?.studentId != null)
+                _infoTile(
+                  context,
+                  Icons.badge_outlined,
+                  'Student ID',
+                  user!.studentId!,
+                  cardColor,
+                  textColor,
+                  subTextColor,
+                ),
+              if (user?.businessName != null)
+                _infoTile(
+                  context,
+                  Icons.business_outlined,
+                  'Business',
+                  user!.businessName!,
+                  cardColor,
+                  textColor,
+                  subTextColor,
+                ),
               _infoTile(
                 context,
                 Icons.phone_outlined,
                 'Phone',
-                '+91 98765 43210',
-                cardColor,
-                textColor,
-                subTextColor,
-              ),
-              _infoTile(
-                context,
-                Icons.school_outlined,
-                'Department',
-                'Computer Engineering',
-                cardColor,
-                textColor,
-                subTextColor,
-              ),
-              _infoTile(
-                context,
-                Icons.calendar_today_outlined,
-                'Year',
-                '3rd Year',
+                user?.phone ?? 'Not set',
                 cardColor,
                 textColor,
                 subTextColor,
@@ -92,7 +107,6 @@ class ProfileScreen extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // 🌙 Dark Mode Toggle
               SwitchListTile(
                 title: Text(
                   'Dark Mode',
@@ -113,8 +127,10 @@ class ProfileScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.danger,
                   ),
-                  onPressed: () =>
-                      Navigator.pushReplacementNamed(context, '/login'),
+                  onPressed: () {
+                    auth.logout();
+                    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                  },
                   icon: const Icon(Icons.logout),
                   label: const Text('Sign Out'),
                 ),
@@ -122,6 +138,21 @@ class ProfileScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showEditSheet(BuildContext context, String name, String phone) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: EditProfileSheet(initialName: name, initialPhone: phone),
       ),
     );
   }
