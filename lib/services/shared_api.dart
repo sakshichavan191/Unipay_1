@@ -52,4 +52,33 @@ class SharedApi extends CoreApi {
       throw Exception('Failed to fetch transaction detail');
     }
   }
+
+  /// GET /api/merchant/transactions — merchant-specific transaction history
+  Future<TransactionPageData> getMerchantTransactionHistory(
+    int page,
+    int size,
+    String? type,
+    String accessToken,
+    String refreshToken,
+    Future<void> Function(String, String) onTokenRefreshed,
+  ) async {
+    String query = '?page=$page&size=$size';
+    if (type != null && type.isNotEmpty && type != 'ALL') {
+      query += '&type=$type';
+    }
+
+    final response = await authenticatedGet(
+      '/merchant/transactions$query',
+      accessToken,
+      refreshToken,
+      onTokenRefreshed,
+    );
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      return TransactionPageData.fromJson(json['data']);
+    } else {
+      throw Exception('Failed to fetch merchant transactions');
+    }
+  }
 }

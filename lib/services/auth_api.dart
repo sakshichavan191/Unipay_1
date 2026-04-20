@@ -95,4 +95,42 @@ class AuthApi extends CoreApi {
       throw Exception('Failed to fetch wallet balance');
     }
   }
+
+  // ─── Merchant-specific APIs ──────────────────────────────────────────
+
+  /// GET /api/merchant/profile
+  /// Returns { success, data: { businessName, totalReceived, isActive } }
+  Future<Map<String, dynamic>> getMerchantProfile(String accessToken, String refreshToken, Future<void> Function(String, String) onTokenRefreshed) async {
+    final response = await authenticatedGet(
+      '/merchant/profile',
+      accessToken,
+      refreshToken,
+      onTokenRefreshed,
+    );
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      return json['data'] as Map<String, dynamic>;
+    } else {
+      throw Exception('Failed to fetch merchant profile');
+    }
+  }
+
+  /// GET /api/merchant/balance
+  /// Returns { success, message, balance }
+  Future<double> getMerchantBalance(String accessToken, String refreshToken, Future<void> Function(String, String) onTokenRefreshed) async {
+    final response = await authenticatedGet(
+      '/merchant/balance',
+      accessToken,
+      refreshToken,
+      onTokenRefreshed,
+    );
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      return (json['balance'] as num).toDouble();
+    } else {
+      throw Exception('Failed to fetch merchant balance');
+    }
+  }
 }

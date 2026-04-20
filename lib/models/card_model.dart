@@ -2,6 +2,7 @@ class CardModel {
   final int cardId;
   final String cardUid;
   final bool isBlocked;
+  final bool isActive;
   final String? blockedReason;
   final String? linkedAt;
   final String? lastUsedAt;
@@ -15,6 +16,7 @@ class CardModel {
     required this.cardId,
     required this.cardUid,
     required this.isBlocked,
+    required this.isActive,
     this.blockedReason,
     this.linkedAt,
     this.lastUsedAt,
@@ -27,7 +29,8 @@ class CardModel {
     return CardModel(
       cardId: json['cardId'],
       cardUid: json['cardUid'],
-      isBlocked: json['isBlocked'] ?? false,
+      isBlocked: (json['isBlocked'] ?? json['blocked']) ?? false,
+      isActive: (json['isActive'] ?? json['active']) ?? true,
       blockedReason: json['blockedReason'],
       linkedAt: json['linkedAt'],
       lastUsedAt: json['lastUsedAt'],

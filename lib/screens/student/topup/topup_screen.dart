@@ -13,16 +13,57 @@ class _TopupScreenState extends State<TopupScreen> {
   final _ctrl = TextEditingController();
   int selected = 0;
   final amounts = [100, 200, 500, 1000];
+  bool _dialogShown = false;
 
   @override
   void initState() {
     super.initState();
     _ctrl.text = amounts[0].toString();
-    
-    // Reset payment status when entering the screen
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<PaymentProvider>(context, listen: false).resetStatus();
+      final paymentProvider = Provider.of<PaymentProvider>(context, listen: false);
+      paymentProvider.resetStatus();
+      // Listen to payment status changes
+      paymentProvider.addListener(_onPaymentStatusChanged);
     });
+  }
+
+  @override
+  void dispose() {
+    // Remove listener to prevent leaks
+    Provider.of<PaymentProvider>(context, listen: false).removeListener(_onPaymentStatusChanged);
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  /// Handles payment status changes outside of build()
+  void _onPaymentStatusChanged() {
+    if (!mounted) return;
+    final paymentProvider = Provider.of<PaymentProvider>(context, listen: false);
+
+    if (paymentProvider.isSuccess && !_dialogShown) {
+      _dialogShown = true;
+      paymentProvider.resetStatus();
+      _showSuccessDialog();
+    }
+
+    if (paymentProvider.errorMessage != null) {
+      final msg = paymentProvider.errorMessage!;
+      paymentProvider.resetStatus();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_friendlyError(msg)),
+          backgroundColor: AppTheme.danger,
+        ),
+      );
+    }
+  }
+
+  String _friendlyError(String raw) {
+    if (raw.contains('SocketException') || raw.contains('ClientException')) {
+      return 'Cannot reach server. Please check your internet connection.';
+    }
+    return raw;
   }
 
   void _handlePayment() {
@@ -37,29 +78,13 @@ class _TopupScreenState extends State<TopupScreen> {
       return;
     }
 
+    _dialogShown = false;
     Provider.of<PaymentProvider>(context, listen: false).startPayment(amount);
   }
 
   @override
   Widget build(BuildContext context) {
-    final paymentProvider = Provider.of<PaymentProvider>(context);
-
-    // Listen for payment completion
-    if (paymentProvider.isSuccess) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showSuccessDialog();
-        paymentProvider.resetStatus();
-      });
-    }
-
-    if (paymentProvider.errorMessage != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(paymentProvider.errorMessage!)),
-        );
-        paymentProvider.resetStatus();
-      });
-    }
+    final isLoading = context.select<PaymentProvider, bool>((p) => p.isLoading);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Add Balance')),
@@ -120,7 +145,7 @@ class _TopupScreenState extends State<TopupScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: paymentProvider.isLoading ? null : _handlePayment,
+                    onPressed: isLoading ? null : _handlePayment,
                     icon: const Icon(Icons.payment),
                     label: const Text('Proceed to Pay'),
                   ),
@@ -128,7 +153,7 @@ class _TopupScreenState extends State<TopupScreen> {
               ],
             ),
           ),
-          if (paymentProvider.isLoading)
+          if (isLoading)
             Container(
               color: Colors.black26,
               child: const Center(
@@ -145,6 +170,7 @@ class _TopupScreenState extends State<TopupScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Icon(Icons.check_circle, color: Colors.green, size: 60),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
@@ -166,4 +192,4 @@ class _TopupScreenState extends State<TopupScreen> {
       ),
     );
   }
-}
+}

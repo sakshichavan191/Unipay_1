@@ -46,6 +46,38 @@ class StudentApi extends CoreApi {
     }
   }
 
+  Future<void> blockCard(String cardUid, String? reason, String accessToken, String refreshToken, Future<void> Function(String, String) onTokenRefreshed) async {
+    final response = await authenticatedPatch(
+      '/cards/$cardUid/block',
+      {
+        'reason': reason ?? 'Blocked by student',
+      },
+      accessToken,
+      refreshToken,
+      onTokenRefreshed,
+    );
+
+    if (response.statusCode != 200) {
+      final json = jsonDecode(response.body);
+      throw Exception(json['message'] ?? 'Failed to block card');
+    }
+  }
+
+  Future<void> unblockCard(String cardUid, String accessToken, String refreshToken, Future<void> Function(String, String) onTokenRefreshed) async {
+    final response = await authenticatedPatch(
+      '/cards/$cardUid/unblock',
+      {},
+      accessToken,
+      refreshToken,
+      onTokenRefreshed,
+    );
+
+    if (response.statusCode != 200) {
+      final json = jsonDecode(response.body);
+      throw Exception(json['message'] ?? 'Failed to unblock card');
+    }
+  }
+
   Future<RechargeOrderResponse> createRechargeOrder(int amount, String accessToken, String refreshToken, Future<void> Function(String, String) onTokenRefreshed) async {
     final response = await authenticatedPost(
       '/wallet/create-recharge-order',

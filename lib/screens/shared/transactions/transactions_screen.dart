@@ -5,6 +5,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/transaction_provider.dart';
 import '../../../models/transaction_model.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/unipay_refresh_indicator.dart';
 import '../../../widgets/transaction_tile.dart';
 
 class TransactionsScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = Provider.of<AuthProvider>(context, listen: false);
+      // Uses cache — won't re-fetch if HomeScreen already loaded recently
       Provider.of<TransactionProvider>(context, listen: false).fetchInitial(auth);
     });
   }
@@ -72,8 +74,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : txnProvider.transactions.isEmpty
                     ? const Center(child: Text('No transactions found'))
-                    : RefreshIndicator(
-                        onRefresh: () => txnProvider.fetchInitial(auth, type: txnProvider.currentType),
+                    : UniPayRefreshIndicator(
+                        onRefresh: () => txnProvider.fetchInitial(auth, type: txnProvider.currentType, forceRefresh: true),
                         child: ListView.builder(
                           controller: _scrollController,
                           padding: const EdgeInsets.all(16),

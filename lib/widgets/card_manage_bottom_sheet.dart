@@ -139,22 +139,30 @@ class _CardManageBottomSheetState extends State<CardManageBottomSheet> {
 
                 Navigator.pop(context);
                 try {
-                  await cardProvider.toggleStatus(
-                    widget.card.cardUid,
-                    currentlyBlocked, // if true, action is 'activate'
-                    finalReason
-                  );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Action successful')),
-                  );
+                  if (currentlyBlocked) {
+                    await cardProvider.unblockCard(widget.card.cardUid);
+                  } else {
+                    await cardProvider.blockCard(widget.card.cardUid, finalReason);
+                  }
+                  
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(currentlyBlocked ? 'Card unblocked' : 'Card blocked'),
+                        backgroundColor: currentlyBlocked ? AppTheme.success : AppTheme.danger,
+                      ),
+                    );
+                  }
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed: $e')),
-                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed: $e'), backgroundColor: AppTheme.danger),
+                    );
+                  }
                 }
               },
               child: Text(
-                currentlyBlocked ? 'Confirm Activation' : 'Confirm Deactivation',
+                currentlyBlocked ? 'Confirm Unblock' : 'Confirm Block',
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),

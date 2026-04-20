@@ -4,9 +4,66 @@ import '../../../providers/auth_provider.dart';
 import '../../../theme/app_theme.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../widgets/edit_profile_sheet.dart';
+import '../../../services/pin_service.dart';
+import '../../auth/pin_lock_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _pinEnabled = false;
+  bool _pinLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPinStatus();
+  }
+
+  Future<void> _loadPinStatus() async {
+    final enabled = await PinService.isPinEnabled();
+    if (mounted) {
+      setState(() {
+        _pinEnabled = enabled;
+        _pinLoading = false;
+      });
+    }
+  }
+
+  Future<void> _togglePin(bool enable) async {
+    if (enable) {
+      // Setup new PIN
+      final result = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => const PinLockScreen(mode: PinScreenMode.setup)),
+      );
+      if (result == true && mounted) {
+        setState(() => _pinEnabled = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('App PIN enabled!'), backgroundColor: AppTheme.success),
+        );
+      }
+    } else {
+      // Verify current PIN before disabling
+      final unlocked = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => const PinLockScreen(mode: PinScreenMode.verify)),
+      );
+      if (unlocked == true) {
+        await PinService.removePin();
+        if (mounted) {
+          setState(() => _pinEnabled = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('App PIN disabled'), backgroundColor: AppTheme.danger),
+          );
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -105,21 +162,87 @@ class ProfileScreen extends StatelessWidget {
                 subTextColor,
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
-              SwitchListTile(
-                title: Text(
-                  'Dark Mode',
-                  style: TextStyle(color: textColor),
+              // ─── Settings Section ──────────────────────────────────────
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 8),
+                  child: Text(
+                    'Settings',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textColor),
+                  ),
                 ),
-                value: Provider.of<ThemeProvider>(context).isDark,
-                onChanged: (val) {
-                  Provider.of<ThemeProvider>(context, listen: false)
-                      .toggleTheme(val);
-                },
               ),
 
-              const SizedBox(height: 20),
+              Container(
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  children: [
+                    SwitchListTile(
+                      title: Text('Dark Mode', style: TextStyle(color: textColor, fontSize: 14)),
+                      secondary: Icon(
+                        Provider.of<ThemeProvider>(context).isDark 
+                            ? Icons.dark_mode_rounded 
+                            : Icons.light_mode_rounded,
+                        color: AppTheme.primary,
+                        size: 20,
+                      ),
+                      value: Provider.of<ThemeProvider>(context).isDark,
+                      onChanged: (val) {
+                        Provider.of<ThemeProvider>(context, listen: false).toggleTheme(val);
+                      },
+                    ),
+                    Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
+                    SwitchListTile(
+                      title: Text('App PIN Lock', style: TextStyle(color: textColor, fontSize: 14)),
+                      subtitle: Text(
+                        _pinEnabled ? 'PIN is active' : 'Protect app with a 4-digit PIN',
+                        style: TextStyle(color: subTextColor, fontSize: 11),
+                      ),
+                      secondary: Icon(
+                        _pinEnabled ? Icons.lock_rounded : Icons.lock_open_rounded,
+                        color: _pinEnabled ? AppTheme.success : Colors.grey,
+                        size: 20,
+                      ),
+                      value: _pinEnabled,
+                      onChanged: _pinLoading ? null : _togglePin,
+                    ),
+                    if (_pinEnabled) ...[
+                      Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
+                      ListTile(
+                        leading: const Icon(Icons.password_rounded, color: AppTheme.primary, size: 20),
+                        title: Text('Change PIN', style: TextStyle(color: textColor, fontSize: 14)),
+                        trailing: const Icon(Icons.chevron_right, size: 18),
+                        onTap: () async {
+                          // Verify current PIN first
+                          final unlocked = await Navigator.push<bool>(
+                            context,
+                            MaterialPageRoute(builder: (_) => const PinLockScreen(mode: PinScreenMode.verify)),
+                          );
+                          if (unlocked == true && mounted) {
+                            final changed = await Navigator.push<bool>(
+                              context,
+                              MaterialPageRoute(builder: (_) => const PinLockScreen(mode: PinScreenMode.change)),
+                            );
+                            if (changed == true && mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('PIN updated!'), backgroundColor: AppTheme.success),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
 
               SizedBox(
                 width: double.infinity,
@@ -129,7 +252,6 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   onPressed: () {
                     auth.logout();
-                    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
                   },
                   icon: const Icon(Icons.logout),
                   label: const Text('Sign Out'),

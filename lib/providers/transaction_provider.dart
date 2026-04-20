@@ -12,8 +12,10 @@ class TransactionProvider with ChangeNotifier {
   bool _hasMore = true;
   int _currentPage = 0;
   String? _currentType; // 'ALL', 'NFC_PAYMENT', 'RECHARGE'
+  DateTime? _lastFetchTime;
   
   final int _pageSize = 10;
+  static const _cacheDuration = Duration(seconds: 15);
   
   List<TransactionModel> get transactions => _transactions;
   bool get isLoading => _isLoading;
@@ -21,8 +23,39 @@ class TransactionProvider with ChangeNotifier {
   bool get hasMore => _hasMore;
   String get currentType => _currentType ?? 'ALL';
 
-  Future<void> fetchInitial(AuthProvider authProvider, {String? type}) async {
+  /// Routes to the correct endpoint based on role
+  Future<TransactionPageData> _fetchPage(AuthProvider authProvider, int page) {
+    final isMerchant = authProvider.user?.role == 'MERCHANT';
+    if (isMerchant) {
+      return _apiService.getMerchantTransactionHistory(
+        page,
+        _pageSize,
+        _currentType,
+        authProvider.token!,
+        authProvider.refreshToken!,
+        authProvider.updateTokens,
+      );
+    } else {
+      return _apiService.getTransactionHistory(
+        page,
+        _pageSize,
+        _currentType,
+        authProvider.token!,
+        authProvider.refreshToken!,
+        authProvider.updateTokens,
+      );
+    }
+  }
+
+  Future<void> fetchInitial(AuthProvider authProvider, {String? type, bool forceRefresh = false}) async {
     if (authProvider.token == null || authProvider.refreshToken == null) return;
+
+    // Skip if same filter and recently fetched
+    if (!forceRefresh && type == _currentType && _lastFetchTime != null &&
+        DateTime.now().difference(_lastFetchTime!) < _cacheDuration &&
+        _transactions.isNotEmpty) {
+      return;
+    }
     
     _isLoading = true;
     _currentPage = 0;
@@ -31,19 +64,16 @@ class TransactionProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final pageData = await _apiService.getTransactionHistory(
-        _currentPage,
-        _pageSize,
-        _currentType,
-        authProvider.token!,
-        authProvider.refreshToken!,
-        authProvider.updateTokens,
-      );
+      final pageData = await _fetchPage(authProvider, _currentPage);
       
       _transactions = pageData.transactions;
       _hasMore = pageData.currentPage < pageData.totalPages - 1;
+      _lastFetchTime = DateTime.now();
     } catch (e) {
       debugPrint("Failed to fetch transactions: $e");
+      if (e.toString().contains('Session expired')) {
+        authProvider.logout();
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -59,20 +89,16 @@ class TransactionProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final pageData = await _apiService.getTransactionHistory(
-        _currentPage,
-        _pageSize,
-        _currentType,
-        authProvider.token!,
-        authProvider.refreshToken!,
-        authProvider.updateTokens,
-      );
+      final pageData = await _fetchPage(authProvider, _currentPage);
       
       _transactions.addAll(pageData.transactions);
       _hasMore = pageData.currentPage < pageData.totalPages - 1;
     } catch (e) {
-      _currentPage--; // Revert page count on failure
+      _currentPage--;
       debugPrint("Failed to load more transactions: $e");
+      if (e.toString().contains('Session expired')) {
+        authProvider.logout();
+      }
     } finally {
       _isLoadingMore = false;
       notifyListeners();
@@ -81,7 +107,7 @@ class TransactionProvider with ChangeNotifier {
 
   void setFilter(AuthProvider authProvider, String type) {
     if (_currentType == type) return;
-    fetchInitial(authProvider, type: type);
+    fetchInitial(authProvider, type: type, forceRefresh: true);
   }
 
   Future<TransactionDetailModel?> getDetail(AuthProvider authProvider, int id) async {
@@ -96,6 +122,9 @@ class TransactionProvider with ChangeNotifier {
         );
      } catch (e) {
         debugPrint("Detail fail: $e");
+        if (e.toString().contains('Session expired')) {
+          authProvider.logout();
+        }
         return null;
      }
   }

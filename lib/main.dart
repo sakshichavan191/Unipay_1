@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'core/globals.dart';
 
 import 'theme/app_theme.dart';
 import 'providers/theme_provider.dart';
@@ -38,7 +39,10 @@ void main() async {
         ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProxyProvider<AuthProvider, CardProvider>(
           create: (context) => CardProvider(authProvider),
-          update: (context, auth, previous) => CardProvider(auth),
+          update: (context, auth, previous) {
+            previous!.updateAuth(auth);
+            return previous;
+          },
         ),
         ChangeNotifierProxyProvider<AuthProvider, PaymentProvider>(
           create: (context) => PaymentProvider(authProvider),
@@ -63,6 +67,7 @@ class UniPayApp extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(
+          navigatorKey: navigatorKey,
           title: 'UniPay',
           debugShowCheckedModeBanner: false,
 

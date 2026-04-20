@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/auth_models.dart';
 import '../services/auth_api.dart';
+import '../core/globals.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthApi _apiService = AuthApi();
@@ -34,36 +35,74 @@ class AuthProvider with ChangeNotifier {
   Future<void> fetchProfile() async {
     if (_token == null || _refreshToken == null) return;
     try {
-      final updatedUser = await _apiService.getProfile(
+      final currentRole = _user?.role;
+      
+      if (currentRole == 'MERCHANT') {
+        // Use merchant-specific profile endpoint
+        await _fetchMerchantProfile();
+      } else {
+        // Students and admins use the generic user profile endpoint
+        final updatedUser = await _apiService.getProfile(
+          _token!,
+          _refreshToken!,
+          updateTokens,
+        );
+        
+        final currentBalance = _user?.walletBalance ?? 0.0;
+        
+        _user = User(
+          id: updatedUser.id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          phone: updatedUser.phone,
+          studentId: updatedUser.studentId,
+          businessName: updatedUser.businessName,
+          walletBalance: currentBalance,
+          isActive: updatedUser.isActive,
+          createdAt: updatedUser.createdAt,
+        );
+        
+        await _storage.write(key: 'user_profile', value: jsonEncode(_user!.toJson()));
+        notifyListeners();
+      }
+      
+      // Fetch the real balance from role-appropriate endpoint
+      await fetchBalance();
+    } catch (e) {
+      debugPrint("Profile fetch failed: $e");
+      if (e.toString().contains('Session expired')) {
+        await logout();
+      }
+    }
+  }
+
+  Future<void> _fetchMerchantProfile() async {
+    try {
+      final data = await _apiService.getMerchantProfile(
         _token!,
         _refreshToken!,
         updateTokens,
       );
       
-      // We manually keep the old balance until fetchBalance completes
-      // so it doesn't flash to 0.0 momentarily.
-      final currentBalance = _user?.walletBalance ?? 0.0;
-      
+      // Merge merchant-specific fields into our User model
       _user = User(
-        id: updatedUser.id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        role: updatedUser.role,
-        phone: updatedUser.phone,
-        studentId: updatedUser.studentId,
-        businessName: updatedUser.businessName,
-        walletBalance: currentBalance, // Temporarily preserve
-        isActive: updatedUser.isActive,
-        createdAt: updatedUser.createdAt,
+        id: _user!.id,
+        name: _user!.name,
+        email: _user!.email,
+        role: _user!.role,
+        phone: _user!.phone,
+        studentId: _user!.studentId,
+        businessName: data['businessName'] ?? _user!.businessName,
+        walletBalance: (data['totalReceived'] as num?)?.toDouble() ?? _user!.walletBalance,
+        isActive: data['isActive'] ?? data['active'] ?? _user!.isActive,
+        createdAt: _user!.createdAt,
       );
       
       await _storage.write(key: 'user_profile', value: jsonEncode(_user!.toJson()));
       notifyListeners();
-      
-      // Explicitly hit the dedicated balance endpoint to get the truth without backend changes!
-      await fetchBalance();
     } catch (e) {
-      debugPrint("Profile fetch failed: $e");
+      debugPrint("Merchant profile fetch failed: $e");
     }
   }
 
@@ -115,6 +154,7 @@ class AuthProvider with ChangeNotifier {
       _refreshToken = null;
       await _storage.deleteAll();
       notifyListeners();
+      navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
     }
   }
 
@@ -167,11 +207,23 @@ class AuthProvider with ChangeNotifier {
   Future<void> fetchBalance() async {
     if (_token == null || _refreshToken == null || _user == null) return;
     try {
-      final balance = await _apiService.getWalletBalance(
-        _token!,
-        _refreshToken!,
-        updateTokens,
-      );
+      double balance;
+      
+      if (_user!.role == 'MERCHANT') {
+        // Hit merchant-specific balance endpoint
+        balance = await _apiService.getMerchantBalance(
+          _token!,
+          _refreshToken!,
+          updateTokens,
+        );
+      } else {
+        // Students use the wallet balance endpoint
+        balance = await _apiService.getWalletBalance(
+          _token!,
+          _refreshToken!,
+          updateTokens,
+        );
+      }
       
       _user = User(
         id: _user!.id,
@@ -181,7 +233,7 @@ class AuthProvider with ChangeNotifier {
         phone: _user!.phone,
         studentId: _user!.studentId,
         businessName: _user!.businessName,
-        walletBalance: balance, // Updated balance
+        walletBalance: balance,
         isActive: _user!.isActive,
         createdAt: _user!.createdAt,
       );
@@ -190,6 +242,9 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint("Balance fetch failed: $e");
+      if (e.toString().contains('Session expired')) {
+        await logout();
+      }
     }
   }
 

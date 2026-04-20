@@ -309,6 +309,32 @@ class AdminProvider with ChangeNotifier {
     }
   }
 
+  // --- LIGHTWEIGHT USER LIST FOR CARD LINKING ---
+
+  List<User> _linkableUsers = [];
+  List<User> get linkableUsers => _linkableUsers;
+
+  /// Fetches a lightweight list of STUDENT users for the card-link picker.
+  /// Doesn't affect the paginated user management state.
+  Future<void> fetchStudentsForLinking() async {
+    if (!_authProvider.isAuthenticated) return;
+    try {
+      final json = await _apiService.getUsers(
+        0,
+        100, // Fetch a generous batch for the picker
+        'STUDENT',
+        _authProvider.token!,
+        _authProvider.refreshToken!,
+        _authProvider.updateTokens,
+      );
+      final response = AdminUserListResponse.fromJson(json);
+      _linkableUsers = response.data.users;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to fetch students for linking: $e');
+    }
+  }
+
   // --- UTILS ---
 
   void _setLoading(bool val) {

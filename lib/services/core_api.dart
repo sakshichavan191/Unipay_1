@@ -5,7 +5,7 @@ import '../models/auth_models.dart';
 class CoreApi {
   // Use http://localhost:8080/api for Windows/Web/Desktop
   // Use http://10.0.2.2:8080/api for Android Emulator
-  static const String baseUrl = 'http://192.168.0.120:8080/api';
+  static const String baseUrl = 'https://unipay-backend1-production.up.railway.app/api';
 
   Future<AuthResponse> refreshToken(String refreshTokenStr) async {
     final response = await http.post(
