@@ -7,7 +7,24 @@ class CoreApi {
   // Use http://10.0.2.2:8080/api for Android Emulator
   static const String baseUrl = 'https://unipay-backend1-production.up.railway.app/api';
 
+  static Future<AuthResponse>? _refreshFuture;
+
   Future<AuthResponse> refreshToken(String refreshTokenStr) async {
+    if (_refreshFuture != null) {
+      return _refreshFuture!;
+    }
+
+    _refreshFuture = _performRefresh(refreshTokenStr);
+    
+    try {
+      final response = await _refreshFuture!;
+      return response;
+    } finally {
+      _refreshFuture = null;
+    }
+  }
+
+  Future<AuthResponse> _performRefresh(String refreshTokenStr) async {
     final response = await http.post(
       Uri.parse('$baseUrl/auth/refresh'),
       headers: {'Content-Type': 'application/json'},
@@ -20,6 +37,7 @@ class CoreApi {
       throw Exception('Session expired. Please login again.');
     }
   }
+
 
   // Generic authenticated POST request with auto-refresh logic
   Future<http.Response> authenticatedPost(

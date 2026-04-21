@@ -25,12 +25,20 @@ class AuthProvider with ChangeNotifier {
     _refreshToken = await _storage.read(key: 'refresh_token');
     String? userJson = await _storage.read(key: 'user_profile');
     if (userJson != null) {
-      _user = User.fromJson(jsonDecode(userJson));
-      // Refresh rich profile in background if we have a token
-      fetchProfile(); 
+      try {
+        _user = User.fromJson(jsonDecode(userJson));
+        // Refresh rich profile synchronously during init 
+        // to ensure we have a valid session before building the UI
+        await fetchProfile(); 
+      } catch (e) {
+        debugPrint("Initial profile refresh failed: $e");
+        // If it was a credentials issue, logout handles it
+        // If it was network, we keep the stale user from storage
+      }
     }
     notifyListeners();
   }
+
 
   Future<void> fetchProfile() async {
     if (_token == null || _refreshToken == null) return;
