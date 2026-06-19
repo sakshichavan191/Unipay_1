@@ -1,31 +1,69 @@
 # UniPay – Smart Campus Cashless Payment Ecosystem
 
-UniPay is a smart campus cashless payment ecosystem designed to digitize and simplify financial transactions within educational institutions. The platform enables students to make secure payments using NFC-enabled ID cards, eliminating the need for physical cash while ensuring fast, reliable, and transparent transactions. UniPay creates a unified ecosystem connecting students, merchants, and administrators, allowing seamless payment processing, wallet management, transaction monitoring, and system administration through a single platform.
+## About the Project
 
-Frontend Design & Features
+UniPay is a smart campus cashless payment ecosystem designed to digitize and simplify financial transactions within educational institutions. The platform enables students to make secure payments using NFC-enabled ID cards, eliminating the need for physical cash while ensuring fast, reliable, and transparent transactions.
 
-The frontend of UniPay is developed using Flutter, delivering a modern, responsive, and intuitive user experience across multiple devices. The application follows a role-based architecture, providing dedicated interfaces for Students, Merchants, and Administrators while maintaining a consistent design language throughout the platform.
+The system connects students, merchants, and administrators through a unified platform that supports real-time payment processing, digital wallet management, transaction monitoring, and campus-wide financial operations. By leveraging NFC technology and modern mobile development practices, UniPay provides a seamless and secure payment experience for all stakeholders.
 
-The Student Dashboard serves as the central hub for managing campus payments and NFC card activities. Students can view their wallet balance, monitor card status, access transaction history, and perform actions such as adding funds, managing cards, and reviewing recent payment activity. Real-time updates ensure users always have access to the latest account and transaction information.
+## Frontend Design & Features
 
-The Merchant Dashboard is designed to streamline payment collection and transaction monitoring. Merchants can track total earnings, view recent NFC payments, access transaction records, and monitor daily business activity through a clean and organized interface that simplifies payment management.
+The frontend of UniPay is built using Flutter, delivering a modern, responsive, and intuitive user experience. The application follows a role-based architecture, providing dedicated interfaces for Students, Merchants, and Administrators while maintaining a consistent design language across the platform.
 
-The Admin Console provides centralized control over the entire ecosystem. Administrators can manage users, onboard and monitor merchants, oversee NFC card operations, and supervise platform activities through dedicated management modules, ensuring smooth system operation and security.
+### Student Dashboard
+The student interface provides a personalized dashboard where users can:
+- View wallet balance and NFC card status
+- Access transaction history and recent activities
+- Add funds to their wallet
+- Manage and monitor NFC card usage
+- Track spending through real-time transaction updates
 
-UniPay also includes a comprehensive Transaction Management System that provides detailed transaction records, including payment amounts, timestamps, sender and receiver information, transaction categories, and unique transaction identifiers. This enhances transparency and simplifies auditing and record management.
+### Merchant Dashboard
+The merchant portal is designed to simplify payment collection and monitoring by allowing vendors to:
+- View total earnings and daily transaction activity
+- Track incoming NFC payments in real time
+- Access detailed transaction records
+- Monitor payment history through an intuitive dashboard
 
-The Profile & Security Module allows users to manage personal information, configure account settings, enable PIN-based protection, and securely access platform services. The application prioritizes usability, performance, and security to deliver a seamless digital payment experience.
+### Admin Console
+The administrative dashboard provides centralized control over the entire ecosystem, enabling administrators to:
+- Manage students and user accounts
+- Register and monitor merchants
+- Oversee NFC card operations
+- Supervise platform activities and system management
 
-Key Features
-NFC-enabled cashless payments using student ID cards
-Secure digital wallet and balance management
-Real-time payment processing and transaction updates
-Student dashboard with wallet, card, and activity management
-Merchant dashboard for earnings and payment tracking
-Administrative console for system-wide management
-Detailed transaction history and payment records
-Profile management and security settings
-Responsive and user-friendly Flutter-based interface
-Scalable architecture designed for campus-wide deployment
+### Transaction Management
+UniPay includes a comprehensive transaction management system that provides detailed payment records, including transaction amount, payment status, timestamps, transaction category, sender and receiver information, and unique transaction identifiers, ensuring transparency and accountability.
 
-UniPay aims to modernize campus transactions by providing a secure, efficient, and user-centric digital payment solution that enhances convenience for students, simplifies operations for merchants, and offers comprehensive management capabilities for administrators.
+### Profile & Security
+The platform includes profile management and security features that allow users to:
+- Manage personal account information
+- Configure application settings
+- Enable PIN-based protection
+- Securely access platform services
+
+## Key Features
+
+- NFC-enabled cashless payments
+- Secure digital wallet management
+- Real-time payment processing
+- Student, Merchant, and Admin dashboards
+- Transaction tracking and history
+- Merchant earnings monitoring
+- User and merchant management
+- NFC card management system
+- PIN-based security features
+- Responsive Flutter-based user interface
+
+## Tech Stack
+
+- Flutter
+- Dart
+- Firebase
+- NFC Technology
+- REST APIs
+- Cloud Database Services
+
+## Vision
+
+UniPay aims to modernize campus transactions by creating a secure, efficient, and user-friendly digital payment ecosystem. The platform enhances convenience for students, streamlines operations for merchants, and provides administrators with powerful tools to manage campus-wide financial activities through a single integrated solution.
